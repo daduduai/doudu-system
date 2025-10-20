@@ -1,0 +1,3210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大都督副业平台数据查询系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        accent: '#722ED1',
+                        success: '#52C41A',
+                        warning: '#FAAD14',
+                        danger: '#FF4D4F',
+                        dark: '#1F2937',
+                        light: '#F8FAFC'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'slide-up': 'slideUp 0.6s ease-out',
+                        'bounce-in': 'bounceIn 0.8s ease-out',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'marquee': 'marquee 30s linear infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            }
+            .card-shadow {
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            }
+            .hover-lift {
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+            }
+            .hover-lift:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from { 
+                opacity: 0; 
+                transform: translateY(30px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+        
+        @keyframes bounceIn {
+            0% { 
+                opacity: 0; 
+                transform: scale(0.3); 
+            }
+            50% { 
+                opacity: 1; 
+                transform: scale(1.05); 
+            }
+            70% { 
+                transform: scale(0.9); 
+            }
+            100% { 
+                opacity: 1; 
+                transform: scale(1); 
+            }
+        }
+        
+        @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+        
+        .platform-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 4px;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .marquee-container {
+            overflow: hidden;
+            position: relative;
+            white-space: nowrap;
+        }
+        
+        .marquee-content {
+            display: inline-block;
+            animation: marquee 30s linear infinite;
+        }
+        
+        .marquee-content:hover {
+            animation-play-state: paused;
+        }
+        
+        .notification-dot {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 8px;
+            height: 8px;
+            background-color: #FF4D4F;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        .role-badge {
+            padding: 0.2rem 0.6rem;
+            border-radius: 9999px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        
+        .login-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .commission-badge {
+            padding: 0.2rem 0.5rem;
+            background: linear-gradient(45deg, #165DFF, #722ED1);
+            color: white;
+            border-radius: 9999px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="font-inter bg-gray-50 min-h-screen">
+    <!-- 登录页面 -->
+    <div id="loginPage" class="fixed inset-0 login-gradient flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4 animate-bounce-in">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fa fa-bullseye text-white text-2xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-900">大都督副业平台</h1>
+                <p class="text-gray-600">数据查询系统</p>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">用户名</label>
+                    <input type="text" id="loginUsername" placeholder="请输入用户名" 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">密码</label>
+                    <input type="password" id="loginPassword" placeholder="请输入密码" 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                </div>
+                
+                <button onclick="login()" class="w-full bg-primary text-white py-3 rounded-lg hover:bg-primary/90 transition-colors font-medium">
+                    <i class="fa fa-sign-in mr-2"></i>登录系统
+                </button>
+                
+                <div class="text-center text-sm text-gray-600">
+                    <p>默认管理员账号：admin / admin123</p>
+                    <p>默认团长账号：leader / leader123</p>
+                    <p>默认普通用户：user / user123</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 滚动消息通知栏 -->
+    <div id="notificationBar" class="bg-gradient-to-r from-primary to-secondary text-white py-2 relative overflow-hidden hidden">
+        <div class="marquee-container">
+            <div class="marquee-content" id="marqueeContent">
+                <span class="inline-block px-8">📢 【重要通知】2024年10月收益统计已更新，请及时查看</span>
+                <span class="inline-block px-8">📣 新功能上线：支持抖音小店数据导入，欢迎体验</span>
+                <span class="inline-block px-8">⚠️ 系统将于2024-10-25 23:00进行维护，请提前做好准备</span>
+                <span class="inline-block px-8">🎉 恭喜华东团队本月收益突破100万！</span>
+            </div>
+        </div>
+        
+        <!-- 管理员消息管理按钮 -->
+        <div class="absolute right-4 top-1/2 transform -translate-y-1/2">
+            <button onclick="toggleNotificationManager()" class="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-sm transition-colors relative">
+                <i class="fa fa-bullhorn mr-1"></i>管理
+                <span class="notification-dot"></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 顶部导航 -->
+    <nav id="mainNav" class="bg-white shadow-lg sticky top-0 z-40 hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 bg-gradient-to-r from-primary to-secondary rounded-lg flex items-center justify-center">
+                            <i class="fa fa-bullseye text-white text-lg"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-900">大都督副业平台数据查询系统</h1>
+                        <p class="text-xs text-gray-500">多平台数据整合 · 智能分析</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-6">
+                    <div class="flex items-center space-x-2">
+                        <div class="status-indicator bg-success"></div>
+                        <span class="text-sm text-gray-600">数据同步中</span>
+                    </div>
+                    
+                    <!-- 用户信息 -->
+                    <div class="flex items-center space-x-3">
+                        <div class="text-right">
+                            <p class="text-sm font-medium text-gray-900" id="currentUsername">管理员</p>
+                            <div class="flex items-center justify-end">
+                                <span id="userRoleBadge" class="role-badge bg-red-100 text-red-800">超级管理员</span>
+                            </div>
+                        </div>
+                        <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                            <i class="fa fa-bullseye text-white text-sm"></i>
+                        </div>
+                        <div class="relative group">
+                            <button onclick="toggleUserMenu()" class="text-gray-500 hover:text-gray-700">
+                                <i class="fa fa-caret-down"></i>
+                            </button>
+                            <div id="userMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 hidden">
+                                <a href="#" onclick="showUserProfile()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i class="fa fa-bullseye mr-2"></i>个人资料
+                                </a>
+                                <a href="#" onclick="showChangePassword()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i class="fa fa-key mr-2"></i>修改密码
+                                </a>
+                                <a href="#" onclick="logout()" class="block px-4 py-2 text-sm text-danger hover:bg-gray-100">
+                                    <i class="fa fa-sign-out mr-2"></i>退出登录
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容区域 -->
+    <div id="mainContent" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 hidden">
+        <!-- 数据概览卡片 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-slide-up">
+            <div class="bg-white rounded-xl p-6 card-shadow hover-lift">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">本月总收益</p>
+                        <p class="text-2xl font-bold text-gray-900">¥128,540</p>
+                        <p class="text-xs text-success flex items-center mt-1">
+                            <i class="fa fa-arrow-up mr-1"></i>+15.2% 较上月
+                        </p>
+                    </div>
+                    <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                        <i class="fa fa-money text-primary text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl p-6 card-shadow hover-lift">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">管理账号数</p>
+                        <p class="text-2xl font-bold text-gray-900">156</p>
+                        <p class="text-xs text-success flex items-center mt-1">
+                            <i class="fa fa-arrow-up mr-1"></i>+8 本月新增
+                        </p>
+                    </div>
+                    <div class="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center">
+                        <i class="fa fa-users text-secondary text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl p-6 card-shadow hover-lift">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">已同步平台</p>
+                        <p class="text-2xl font-bold text-gray-900">8</p>
+                        <p class="text-xs text-gray-500">京东·淘宝·得物·拼多多</p>
+                    </div>
+                    <div class="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center">
+                        <i class="fa fa-shopping-cart text-accent text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl p-6 card-shadow hover-lift">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">团队数量</p>
+                        <p class="text-2xl font-bold text-gray-900">6</p>
+                        <p class="text-xs text-warning flex items-center mt-1">
+                            <i class="fa fa-users mr-1"></i>华东·华南·华北
+                        </p>
+                    </div>
+                    <div class="w-12 h-12 bg-warning/10 rounded-lg flex items-center justify-center">
+                        <i class="fa fa-sitemap text-warning text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 功能导航选项卡 -->
+        <div class="bg-white rounded-xl shadow-lg mb-8 animate-fade-in">
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-8">
+                    <button onclick="switchTab('search')" id="tab-search" class="tab-btn active py-4 px-1 border-b-2 border-primary text-primary font-medium">
+                        <i class="fa fa-search mr-2"></i>账号查询
+                    </button>
+                    <button onclick="switchTab('upload')" id="tab-upload" class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        <i class="fa fa-upload mr-2"></i>账单上传
+                    </button>
+                    <button onclick="switchTab('team')" id="tab-team" class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        <i class="fa fa-users mr-2"></i>团队管理
+                    </button>
+                    <button onclick="switchTab('analysis')" id="tab-analysis" class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        <i class="fa fa-bar-chart mr-2"></i>数据分析
+                    </button>
+                    <button onclick="switchTab('admin')" id="tab-admin" class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hidden">
+                        <i class="fa fa-cog mr-2"></i>系统管理
+                    </button>
+                </nav>
+            </div>
+
+            <!-- 账号查询选项卡内容 -->
+            <div id="content-search" class="tab-content p-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- 查询条件 -->
+                    <div class="lg:col-span-1">
+                        <div class="bg-gray-50 rounded-lg p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fa fa-filter mr-2 text-primary"></i>查询条件
+                            </h3>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">查询方式</label>
+                                    <div class="space-y-2">
+                                        <label class="flex items-center">
+                                            <input type="radio" name="searchType" value="account" checked class="text-primary focus:ring-primary">
+                                            <span class="ml-2 text-sm text-gray-700">平台账号</span>
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="radio" name="searchType" value="nickname" class="text-primary focus:ring-primary">
+                                            <span class="ml-2 text-sm text-gray-700">填写人昵称</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">账号信息</label>
+                                    <input type="text" id="searchInput" placeholder="请输入账号或昵称" 
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">选择平台</label>
+                                    <select id="platformSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                                        <option value="">全部平台</option>
+                                        <!-- 动态生成平台选项 -->
+                                    </select>
+                                </div>
+                                
+                                <div id="teamFilterSection">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">所属团队</label>
+                                    <select id="teamSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                                        <option value="">全部团队</option>
+                                        <option value="east">华东团队</option>
+                                        <option value="south">华南团队</option>
+                                        <option value="north">华北团队</option>
+                                        <option value="west">华西团队</option>
+                                        <option value="northeast">东北团队</option>
+                                        <option value="central">华中团队</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">查询月份</label>
+                                    <input type="month" id="monthSelect" 
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                                </div>
+                                
+                                <button onclick="searchData()" class="w-full bg-primary text-white py-2 rounded-lg hover:bg-primary/90 transition-colors">
+                                    <i class="fa fa-search mr-2"></i>开始查询
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 查询结果 -->
+                    <div class="lg:col-span-2">
+                        <div id="searchResults" class="space-y-6">
+                            <!-- 账号信息卡片 -->
+                            <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                                <div class="bg-gradient-to-r from-primary to-secondary p-6">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-4">
+                                            <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+                                                <i class="fa fa-bullseye text-white text-2xl"></i>
+                                            </div>
+                                            <div>
+                                                <h3 class="text-xl font-bold text-white">张三</h3>
+                                                <p class="text-white/90">填写人昵称：电商达人张三</p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-white/90 text-sm">所属团队</p>
+                                            <p class="text-white font-semibold">华东团队A</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 平台账号列表 -->
+                                <div class="p-6">
+                                    <h4 class="text-lg font-semibold text-gray-900 mb-4">关联平台账号</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div class="border border-gray-200 rounded-lg p-4 hover:border-primary transition-colors cursor-pointer">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <span class="platform-badge bg-red-100 text-red-800">京东</span>
+                                                <span class="text-xs text-gray-500">活跃</span>
+                                            </div>
+                                            <p class="text-sm font-medium text-gray-900">jd_zhang3_shop</p>
+                                            <p class="text-xs text-gray-500">绑定时间：2024-01-15</p>
+                                        </div>
+                                        
+                                        <div class="border border-gray-200 rounded-lg p-4 hover:border-primary transition-colors cursor-pointer">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <span class="platform-badge bg-orange-100 text-orange-800">淘宝</span>
+                                                <span class="text-xs text-gray-500">活跃</span>
+                                            </div>
+                                            <p class="text-sm font-medium text-gray-900">zhang3_taobao</p>
+                                            <p class="text-xs text-gray-500">绑定时间：2024-02-20</p>
+                                        </div>
+                                        
+                                        <div class="border border-gray-200 rounded-lg p-4 hover:border-primary transition-colors cursor-pointer">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <span class="platform-badge bg-purple-100 text-purple-800">淘宝逛逛</span>
+                                                <span class="text-xs text-gray-500">活跃</span>
+                                            </div>
+                                            <p class="text-sm font-medium text-gray-900">guangguang_zhang3</p>
+                                            <p class="text-xs text-gray-500">ID: 123456789 | 绑定时间：2024-03-10</p>
+                                        </div>
+                                        
+                                        <div class="border border-gray-200 rounded-lg p-4 hover:border-primary transition-colors cursor-pointer">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <span class="platform-badge bg-blue-100 text-blue-800">得物</span>
+                                                <span class="text-xs text-gray-500">活跃</span>
+                                            </div>
+                                            <p class="text-sm font-medium text-gray-900">zhang3_dewu</p>
+                                            <p class="text-xs text-gray-500">绑定时间：2024-04-05</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 收益统计 -->
+                            <div class="bg-white rounded-lg border border-gray-200 p-6">
+                                <h4 class="text-lg font-semibold text-gray-900 mb-4">
+                                    <i class="fa fa-line-chart mr-2 text-primary"></i>2024年10月收益统计
+                                </h4>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                                        <p class="text-2xl font-bold text-primary">¥28,540</p>
+                                        <p class="text-sm text-gray-600">总收益</p>
+                                    </div>
+                                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                                        <p class="text-2xl font-bold text-success">¥3,240</p>
+                                        <p class="text-sm text-gray-600">净利润</p>
+                                    </div>
+                                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                                        <p class="text-2xl font-bold text-warning">11.35%</p>
+                                        <p class="text-sm text-gray-600">利润率</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- 平台收益明细 -->
+                                <div class="space-y-3">
+                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                        <div class="flex items-center space-x-3">
+                                            <span class="platform-badge bg-red-100 text-red-800">京东</span>
+                                            <span class="text-sm font-medium text-gray-900">jd_zhang3_shop</span>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-sm font-bold text-gray-900">¥15,200</p>
+                                            <p class="text-xs text-gray-500">5笔订单</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                        <div class="flex items-center space-x-3">
+                                            <span class="platform-badge bg-orange-100 text-orange-800">淘宝</span>
+                                            <span class="text-sm font-medium text-gray-900">zhang3_taobao</span>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-sm font-bold text-gray-900">¥8,800</p>
+                                            <p class="text-xs text-gray-500">8笔订单</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                        <div class="flex items-center space-x-3">
+                                            <span class="platform-badge bg-purple-100 text-purple-800">淘宝逛逛</span>
+                                            <span class="text-sm font-medium text-gray-900">guangguang_zhang3</span>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-sm font-bold text-gray-900">¥3,200</p>
+                                            <p class="text-xs text-gray-500">6笔订单</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                        <div class="flex items-center space-x-3">
+                                            <span class="platform-badge bg-blue-100 text-blue-800">得物</span>
+                                            <span class="text-sm font-medium text-gray-900">zhang3_dewu</span>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-sm font-bold text-gray-900">¥1,340</p>
+                                            <p class="text-xs text-gray-500">3笔订单</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 详细订单列表 -->
+                            <div class="bg-white rounded-lg border border-gray-200">
+                                <div class="p-6 border-b border-gray-200">
+                                    <h4 class="text-lg font-semibold text-gray-900">
+                                        <i class="fa fa-list mr-2 text-primary"></i>详细订单列表
+                                    </h4>
+                                </div>
+                                
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">订单号</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">平台</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">商品</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">金额</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">时间</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200">
+                                            <tr>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">JD234567890123</td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <span class="platform-badge bg-red-100 text-red-800">京东</span>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">iPhone 15 Pro</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">¥8,999</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2024-10-20</td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">已完成</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">TB123456789012</td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <span class="platform-badge bg-orange-100 text-orange-800">淘宝</span>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">华为Mate 60</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">¥6,999</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2024-10-19</td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">已完成</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">TBGG9876543210</td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <span class="platform-badge bg-purple-100 text-purple-800">淘宝逛逛</span>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Nike Air Max</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">¥1,299</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2024-10-18</td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">处理中</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">DW345678901234</td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <span class="platform-badge bg-blue-100 text-blue-800">得物</span>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Air Jordan 1</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">¥1,399</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2024-10-17</td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">已完成</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div class="p-4 border-t border-gray-200 flex items-center justify-between">
+                                    <span class="text-sm text-gray-500">显示 1-4 条，共 24 条</span>
+                                    <div class="flex space-x-2">
+                                        <button class="px-3 py-1 border border-gray-300 rounded text-sm text-gray-500 hover:bg-gray-50">上一页</button>
+                                        <button class="px-3 py-1 border border-primary bg-primary text-white rounded text-sm">1</button>
+                                        <button class="px-3 py-1 border border-gray-300 rounded text-sm text-gray-500 hover:bg-gray-50">2</button>
+                                        <button class="px-3 py-1 border border-gray-300 rounded text-sm text-gray-500 hover:bg-gray-50">3</button>
+                                        <button class="px-3 py-1 border border-gray-300 rounded text-sm text-gray-500 hover:bg-gray-50">下一页</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 账单上传选项卡内容 -->
+            <div id="content-upload" class="tab-content p-6 hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- 上传区域 -->
+                    <div class="space-y-6">
+                        <div class="bg-white rounded-lg border-2 border-dashed border-gray-300 p-8 text-center hover:border-primary transition-colors">
+                            <div class="space-y-4">
+                                <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                                    <i class="fa fa-cloud-upload text-primary text-2xl"></i>
+                                </div>
+                                <h3 class="text-lg font-semibold text-gray-900">拖拽账单文件到此处</h3>
+                                <p class="text-sm text-gray-600">支持 Excel、CSV 格式文件</p>
+                                <button onclick="document.getElementById('fileInput').click()" class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors">
+                                    <i class="fa fa-browse mr-2"></i>选择文件
+                                </button>
+                                <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.csv" class="hidden" onchange="handleFileUpload(event)">
+                            </div>
+                        </div>
+                        
+                        <!-- 上传设置 -->
+                        <div class="bg-white rounded-lg border border-gray-200 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fa fa-cog mr-2 text-primary"></i>上传设置
+                            </h3>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">所属团队 <span class="text-danger">*</span></label>
+                                    <select id="uploadTeamSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" required>
+                                        <option value="">请选择团队</option>
+                                        <option value="east">华东团队</option>
+                                        <option value="south">华南团队</option>
+                                        <option value="north">华北团队</option>
+                                        <option value="west">华西团队</option>
+                                        <option value="northeast">东北团队</option>
+                                        <option value="central">华中团队</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">选择平台 <span class="text-danger">*</span></label>
+                                    <select id="uploadPlatformSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" required>
+                                        <option value="">请选择平台</option>
+                                        <!-- 动态生成平台选项 -->
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">数据类型</label>
+                                    <select id="dataTypeSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                                        <option value="bill">账单数据</option>
+                                        <option value="collection">收集表数据</option>
+                                        <option value="account">账号信息</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">数据月份</label>
+                                    <input type="month" id="dataMonthSelect" 
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                                </div>
+                                
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="overrideData" class="text-primary focus:ring-primary">
+                                    <label for="overrideData" class="ml-2 text-sm text-gray-700">覆盖已有数据</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 平台模板下载 -->
+                        <div class="bg-white rounded-lg border border-gray-200 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fa fa-download mr-2 text-primary"></i>平台模板下载
+                            </h3>
+                            <div id="platformTemplates" class="space-y-3">
+                                <!-- 动态生成平台模板 -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 上传历史 -->
+                    <div class="bg-white rounded-lg border border-gray-200">
+                        <div class="p-6 border-b border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-900">
+                                <i class="fa fa-history mr-2 text-primary"></i>上传历史
+                            </h3>
+                        </div>
+                        
+                        <div class="divide-y divide-gray-200">
+                            <div class="p-4 hover:bg-gray-50 transition-colors">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm font-medium text-gray-900">京东账单_202410.xlsx</span>
+                                    <span class="text-xs text-success">已完成</span>
+                                </div>
+                                <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
+                                    <span>华东团队</span>
+                                    <span>账单数据</span>
+                                    <span>2024-10-20</span>
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    <span>上传者：张三</span> | <span>156条记录</span>
+                                </div>
+                            </div>
+                            
+                            <div class="p-4 hover:bg-gray-50 transition-colors">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm font-medium text-gray-900">淘宝逛逛_202410.csv</span>
+                                    <span class="text-xs text-success">已完成</span>
+                                </div>
+                                <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
+                                    <span>华南团队</span>
+                                    <span>账单数据</span>
+                                    <span>2024-10-20</span>
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    <span>上传者：李四</span> | <span>234条记录</span>
+                                </div>
+                            </div>
+                            
+                            <div class="p-4 hover:bg-gray-50 transition-colors">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm font-medium text-gray-900">得物账单_202410.xlsx</span>
+                                    <span class="text-xs text-warning">处理中</span>
+                                </div>
+                                <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
+                                    <span>华北团队</span>
+                                    <span>账单数据</span>
+                                    <span>2024-10-20</span>
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    <span>上传者：王五</span> | <span>处理进度: 67%</span>
+                                </div>
+                            </div>
+                            
+                            <div class="p-4 hover:bg-gray-50 transition-colors">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm font-medium text-gray-900">团队收集表_10月.xlsx</span>
+                                    <span class="text-xs text-success">已完成</span>
+                                </div>
+                                <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
+                                    <span>华东团队</span>
+                                    <span>收集表数据</span>
+                                    <span>2024-10-19</span>
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    <span>上传者：赵六</span> | <span>45条记录</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 团队管理选项卡内容 -->
+            <div id="content-team" class="tab-content p-6 hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- 团队结构 -->
+                    <div class="lg:col-span-1">
+                        <div class="bg-white rounded-lg border border-gray-200 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fa fa-sitemap mr-2 text-primary"></i>团队结构
+                            </h3>
+                            
+                            <div class="space-y-4">
+                                <div class="relative">
+                                    <div class="flex items-center space-x-3 p-3 bg-primary/10 rounded-lg border-l-4 border-primary">
+                                        <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                                            <i class="fa fa-bullseye text-white text-sm"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">大都督</p>
+                                            <p class="text-xs text-gray-500">总团长</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 下级团队 -->
+                                    <div class="ml-6 mt-2 space-y-2">
+                                        <div class="relative">
+                                            <div class="absolute left-0 top-4 w-3 h-3 bg-gray-300 rounded-full transform -translate-x-1/2"></div>
+                                            <div class="absolute left-0 top-5 w-0.5 h-12 bg-gray-300 transform -translate-x-1/2"></div>
+                                            <div class="flex items-center space-x-3 p-2 bg-gray-50 rounded-lg">
+                                                <div class="w-6 h-6 bg-secondary rounded-full flex items-center justify-center">
+                                                    <i class="fa fa-bullseye text-white text-xs"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="text-xs font-medium text-gray-900">华东团长</p>
+                                                    <p class="text-xs text-gray-500">15人</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="relative">
+                                            <div class="absolute left-0 top-4 w-3 h-3 bg-gray-300 rounded-full transform -translate-x-1/2"></div>
+                                            <div class="absolute left-0 top-5 w-0.5 h-12 bg-gray-300 transform -translate-x-1/2"></div>
+                                            <div class="flex items-center space-x-3 p-2 bg-gray-50 rounded-lg">
+                                                <div class="w-6 h-6 bg-accent rounded-full flex items-center justify-center">
+                                                    <i class="fa fa-bullseye text-white text-xs"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="text-xs font-medium text-gray-900">华南团长</p>
+                                                    <p class="text-xs text-gray-500">12人</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="relative">
+                                            <div class="absolute left-0 top-4 w-3 h-3 bg-gray-300 rounded-full transform -translate-x-1/2"></div>
+                                            <div class="flex items-center space-x-3 p-2 bg-gray-50 rounded-lg">
+                                                <div class="w-6 h-6 bg-warning rounded-full flex items-center justify-center">
+                                                    <i class="fa fa-bullseye text-white text-xs"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="text-xs font-medium text-gray-900">华北团长</p>
+                                                    <p class="text-xs text-gray-500">15人</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 团队统计 -->
+                        <div class="bg-white rounded-lg border border-gray-200 p-6 mt-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">团队统计</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-600">总成员数</span>
+                                    <span class="text-lg font-bold text-gray-900">42</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-600">团长数</span>
+                                    <span class="text-lg font-bold text-gray-900">6</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-600">本月新增</span>
+                                    <span class="text-lg font-bold text-success">5</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-600">活跃成员</span>
+                                    <span class="text-lg font-bold text-primary">38</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 团队收益统计 -->
+                    <div class="lg:col-span-2">
+                        <div class="bg-white rounded-lg border border-gray-200 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fa fa-bar-chart mr-2 text-primary"></i>团队收益统计
+                            </h3>
+                            
+                            <!-- 团队筛选 -->
+                            <div class="flex items-center space-x-4 mb-6">
+                                <select id="teamFilterSelect" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                                    <option value="">全部团队</option>
+                                    <option value="east">华东团队</option>
+                                    <option value="south">华南团队</option>
+                                    <option value="north">华北团队</option>
+                                    <option value="west">华西团队</option>
+                                    <option value="northeast">东北团队</option>
+                                    <option value="central">华中团队</option>
+                                </select>
+                                <select class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                                    <option>本月</option>
+                                    <option>上月</option>
+                                    <option>本季度</option>
+                                    <option>本年度</option>
+                                </select>
+                                <button onclick="exportTeamData()" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
+                                    <i class="fa fa-download mr-2"></i>导出报表
+                                </button>
+                            </div>
+                            
+                            <!-- 收益图表 -->
+                            <div class="mb-6">
+                                <canvas id="teamChart" width="400" height="200"></canvas>
+                            </div>
+                            
+                            <!-- 团队成员列表 -->
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                    <div class="flex items-center space-x-4">
+                                        <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+                                            <i class="fa fa-bullseye text-white"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">华东团队 (15人)</p>
+                                            <p class="text-xs text-gray-500">团长：张经理</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-lg font-bold text-primary">¥89,540</p>
+                                        <p class="text-xs text-success flex items-center justify-end">
+                                            <i class="fa fa-arrow-up mr-1"></i>+12.5%
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                    <div class="flex items-center space-x-4">
+                                        <div class="w-10 h-10 bg-accent rounded-full flex items-center justify-center">
+                                            <i class="fa fa-bullseye text-white"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">华南团队 (12人)</p>
+                                            <p class="text-xs text-gray-500">团长：王经理</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-lg font-bold text-primary">¥67,230</p>
+                                        <p class="text-xs text-success flex items-center justify-end">
+                                            <i class="fa fa-arrow-up mr-1"></i>+8.3%
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                    <div class="flex items-center space-x-4">
+                                        <div class="w-10 h-10 bg-warning rounded-full flex items-center justify-center">
+                                            <i class="fa fa-bullseye text-white"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">华北团队 (15人)</p>
+                                            <p class="text-xs text-gray-500">团长：李经理</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-lg font-bold text-primary">¥72,890</p>
+                                        <p class="text-xs text-danger flex items-center justify-end">
+                                            <i class="fa fa-arrow-down mr-1"></i>-2.1%
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据分析选项卡内容 -->
+            <div id="content-analysis" class="tab-content p-6 hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <!-- 平台收益对比 -->
+                    <div class="bg-white rounded-lg border border-gray-200 p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                            <i class="fa fa-pie-chart mr-2 text-primary"></i>平台收益分布
+                        </h3>
+                        <canvas id="platformChart" width="300" height="300"></canvas>
+                    </div>
+                    
+                    <!-- 月度趋势 -->
+                    <div class="bg-white rounded-lg border border-gray-200 p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                            <i class="fa fa-line-chart mr-2 text-primary"></i>月度收益趋势
+                        </h3>
+                        <canvas id="monthlyChart" width="300" height="300"></canvas>
+                    </div>
+                </div>
+                
+                <!-- 团队收益对比 -->
+                <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                        <i class="fa fa-bar-chart mr-2 text-primary"></i>团队收益对比
+                    </h3>
+                    <canvas id="teamComparisonChart" width="800" height="400"></canvas>
+                </div>
+                
+                <!-- 详细数据表格 -->
+                <div class="bg-white rounded-lg border border-gray-200">
+                    <div class="p-6 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <i class="fa fa-table mr-2 text-primary"></i>详细数据分析
+                        </h3>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">平台</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">账号数</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">总收益</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">订单数</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">平均客单价</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">环比增长</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="platform-badge bg-red-100 text-red-800">京东</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">45</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">¥456,890</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">1,234</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">¥369</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-xs text-success">+15.2%</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="platform-badge bg-orange-100 text-orange-800">淘宝</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">56</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">¥324,560</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2,156</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">¥150</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-xs text-success">+8.7%</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="platform-badge bg-purple-100 text-purple-800">淘宝逛逛</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">32</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">¥198,760</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">890</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">¥223</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-xs text-success">+28.5%</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="platform-badge bg-blue-100 text-blue-800">得物</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">28</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">¥189,230</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">456</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">¥415</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-xs text-success">+23.4%</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="platform-badge bg-yellow-100 text-yellow-800">拼多多</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">32</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">¥156,780</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">1,890</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">¥83</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-xs text-danger">-2.1%</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 系统管理选项卡内容 -->
+            <div id="content-admin" class="tab-content p-6 hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- 管理菜单 -->
+                    <div class="lg:col-span-1">
+                        <div class="bg-white rounded-lg border border-gray-200 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                <i class="fa fa-cog mr-2 text-primary"></i>系统管理
+                            </h3>
+                            
+                            <div class="space-y-2">
+                                <button onclick="showAdminPage('user-management')" class="w-full text-left px-4 py-3 bg-primary/10 text-primary rounded-lg font-medium">
+                                    <i class="fa fa-users mr-3"></i>用户管理
+                                </button>
+                                <button onclick="showAdminPage('platform-management')" class="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-700 rounded-lg transition-colors">
+                                    <i class="fa fa-shopping-cart mr-3"></i>平台管理
+                                </button>
+                                <button onclick="showAdminPage('commission-management')" class="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-700 rounded-lg transition-colors">
+                                    <i class="fa fa-percent mr-3"></i>分成管理
+                                </button>
+                                <button onclick="showAdminPage('team-management')" class="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-700 rounded-lg transition-colors">
+                                    <i class="fa fa-sitemap mr-3"></i>团队管理
+                                </button>
+                                <button onclick="showAdminPage('system-settings')" class="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-700 rounded-lg transition-colors">
+                                    <i class="fa fa-bullseye mr-3"></i>系统设置
+                                </button>
+                                <button onclick="showAdminPage('operation-log')" class="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-700 rounded-lg transition-colors">
+                                    <i class="fa fa-history mr-3"></i>操作日志
+                                </button>
+                                <button onclick="showAdminPage('data-backup')" class="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-700 rounded-lg transition-colors">
+                                    <i class="fa fa-database mr-3"></i>数据备份
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 系统信息 -->
+                        <div class="bg-white rounded-lg border border-gray-200 p-6 mt-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">系统信息</h3>
+                            <div class="space-y-3 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">系统版本</span>
+                                    <span class="text-gray-900">v2.2.0</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">数据库版本</span>
+                                    <span class="text-gray-900">SQLite 3.41.2</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">最后更新</span>
+                                    <span class="text-gray-900">2024-10-21</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">在线用户</span>
+                                    <span class="text-green-600">3人</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 管理页面内容 -->
+                    <div class="lg:col-span-2">
+                        <!-- 用户管理页面 -->
+                        <div id="admin-user-management" class="admin-page">
+                            <div class="bg-white rounded-lg border border-gray-200 p-6">
+                                <div class="flex items-center justify-between mb-6">
+                                    <h3 class="text-lg font-semibold text-gray-900">
+                                        <i class="fa fa-users mr-2 text-primary"></i>用户管理
+                                    </h3>
+                                    <button onclick="showAddUserModal()" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
+                                        <i class="fa fa-plus mr-2"></i>添加用户
+                                    </button>
+                                </div>
+                                
+                                <!-- 用户搜索 -->
+                                <div class="flex items-center space-x-4 mb-6">
+                                    <input type="text" placeholder="搜索用户名或昵称" 
+                                           class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                                    <select class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                                        <option value="">所有角色</option>
+                                        <option value="super_admin">超级管理员</option>
+                                        <option value="admin">管理员</option>
+                                        <option value="leader">团长</option>
+                                        <option value="user">普通用户</option>
+                                    </select>
+                                    <button class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
+                                        <i class="fa fa-search mr-2"></i>搜索
+                                    </button>
+                                </div>
+                                
+                                <!-- 用户列表 -->
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用户名</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">昵称</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">角色</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">所属团队</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">最后登录</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200">
+                                            <tr>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">admin</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">超级管理员</td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <span class="role-badge bg-red-100 text-red-800">超级管理员</span>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">所有团队</td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">活跃</span>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2024-10-20 16:30</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    <button class="text-primary hover:text-primary/80 mr-3">编辑</button>
+                                                    <button class="text-gray-400 hover:text-gray-600">禁用</button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">leader</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">华东团队长</td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <span class="role-badge bg-blue-100 text-blue-800">团长</span>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">华东团队</td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">活跃</span>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2024-10-20 15:45</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    <button class="text-primary hover:text-primary/80 mr-3">编辑</button>
+                                                    <button class="text-gray-400 hover:text-gray-600">禁用</button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">user1</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">张三</td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <span class="role-badge bg-gray-100 text-gray-800">普通用户</span>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">华东团队</td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">活跃</span>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2024-10-20 14:20</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    <button class="text-primary hover:text-primary/80 mr-3">编辑</button>
+                                                    <button class="text-danger hover:text-danger/80">禁用</button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">user2</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">李四</td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <span class="role-badge bg-gray-100 text-gray-800">普通用户</span>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">华南团队</td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">未激活</span>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2024-10-19 10:15</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    <button class="text-primary hover:text-primary/80 mr-3">编辑</button>
+                                                    <button class="text-primary hover:text-primary/80">激活</button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <!-- 分页 -->
+                                <div class="flex items-center justify-between mt-6">
+                                    <span class="text-sm text-gray-500">显示 1-4 条，共 42 条</span>
+                                    <div class="flex space-x-2">
+                                        <button class="px-3 py-1 border border-gray-300 rounded text-sm text-gray-500 hover:bg-gray-50">上一页</button>
+                                        <button class="px-3 py-1 border border-primary bg-primary text-white rounded text-sm">1</button>
+                                        <button class="px-3 py-1 border border-gray-300 rounded text-sm text-gray-500 hover:bg-gray-50">2</button>
+                                        <button class="px-3 py-1 border border-gray-300 rounded text-sm text-gray-500 hover:bg-gray-50">3</button>
+                                        <button class="px-3 py-1 border border-gray-300 rounded text-sm text-gray-500 hover:bg-gray-50">下一页</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 平台管理页面 -->
+                        <div id="admin-platform-management" class="admin-page hidden">
+                            <div class="bg-white rounded-lg border border-gray-200 p-6">
+                                <div class="flex items-center justify-between mb-6">
+                                    <h3 class="text-lg font-semibold text-gray-900">
+                                        <i class="fa fa-shopping-cart mr-2 text-primary"></i>平台管理
+                                    </h3>
+                                    <button onclick="showAddPlatformModal()" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
+                                        <i class="fa fa-plus mr-2"></i>添加平台
+                                    </button>
+                                </div>
+                                
+                                <!-- 平台列表 -->
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">平台名称</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">平台标识</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">账号数</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">创建时间</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200" id="platformList">
+                                            <!-- 动态生成平台列表 -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 分成管理页面 -->
+                        <div id="admin-commission-management" class="admin-page hidden">
+                            <div class="bg-white rounded-lg border border-gray-200 p-6">
+                                <div class="flex items-center justify-between mb-6">
+                                    <h3 class="text-lg font-semibold text-gray-900">
+                                        <i class="fa fa-percent mr-2 text-primary"></i>分成比例管理
+                                    </h3>
+                                    <button onclick="showAddCommissionModal()" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
+                                        <i class="fa fa-plus mr-2"></i>添加分成规则
+                                    </button>
+                                </div>
+                                
+                                <!-- 分成规则列表 -->
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">团长</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">团队</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">平台</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分成比例</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">生效时间</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200" id="commissionList">
+                                            <!-- 动态生成分成规则列表 -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 其他管理页面 -->
+                        <div id="admin-team-management" class="admin-page hidden">
+                            <div class="bg-white rounded-lg border border-gray-200 p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                    <i class="fa fa-sitemap mr-2 text-primary"></i>团队管理
+                                </h3>
+                                <p class="text-gray-600">团队管理功能正在开发中...</p>
+                            </div>
+                        </div>
+                        
+                        <div id="admin-system-settings" class="admin-page hidden">
+                            <div class="bg-white rounded-lg border border-gray-200 p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                    <i class="fa fa-bullseye mr-2 text-primary"></i>系统设置
+                                </h3>
+                                <p class="text-gray-600">系统设置功能正在开发中...</p>
+                            </div>
+                        </div>
+                        
+                        <div id="admin-operation-log" class="admin-page hidden">
+                            <div class="bg-white rounded-lg border border-gray-200 p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                    <i class="fa fa-history mr-2 text-primary"></i>操作日志
+                                </h3>
+                                <p class="text-gray-600">操作日志功能正在开发中...</p>
+                            </div>
+                        </div>
+                        
+                        <div id="admin-data-backup" class="admin-page hidden">
+                            <div class="bg-white rounded-lg border border-gray-200 p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                    <i class="fa fa-database mr-2 text-primary"></i>数据备份
+                                </h3>
+                                <p class="text-gray-600">数据备份功能正在开发中...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer id="mainFooter" class="bg-white border-t border-gray-200 mt-16 hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex items-center justify-between">
+                <div class="text-sm text-gray-500">
+                    © 2024 大都督副业平台数据查询系统. 版权所有.
+                </div>
+                <div class="flex items-center space-x-4 text-sm text-gray-500">
+                    <span>数据同步时间: 2024-10-21 16:30</span>
+                    <span>系统版本: v2.2.0</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 模态框 -->
+    <!-- 消息管理模态框 -->
+    <div id="notificationModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="fa fa-bullhorn mr-2 text-primary"></i>消息管理
+                </h3>
+                <button onclick="toggleNotificationManager()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4 mb-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">消息内容</label>
+                    <input type="text" id="notificationText" placeholder="请输入消息内容" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">消息类型</label>
+                    <select id="notificationType" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                        <option value="info">📢 通知</option>
+                        <option value="announcement">📣 公告</option>
+                        <option value="warning">⚠️ 警告</option>
+                        <option value="celebration">🎉 庆祝</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">显示时长</label>
+                    <select id="notificationDuration" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                        <option value="1">1天</option>
+                        <option value="3">3天</option>
+                        <option value="7" selected>7天</option>
+                        <option value="30">30天</option>
+                        <option value="0">永久显示</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="flex space-x-3">
+                <button onclick="addNotification()" class="flex-1 bg-primary text-white py-2 rounded-lg hover:bg-primary/90 transition-colors">
+                    <i class="fa fa-plus mr-2"></i>添加消息
+                </button>
+                <button onclick="clearAllNotifications()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                    <i class="fa fa-trash mr-1"></i>清空
+                </button>
+            </div>
+            
+            <div class="mt-6">
+                <h4 class="text-sm font-medium text-gray-900 mb-3">当前消息列表</h4>
+                <div id="notificationList" class="space-y-2">
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <span class="text-sm text-gray-700">📢 【重要通知】2024年10月收益统计已更新</span>
+                        <button onclick="deleteNotification(this)" class="text-gray-400 hover:text-red-500">
+                            <i class="fa fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <span class="text-sm text-gray-700">📣 新功能上线：支持抖音小店数据导入</span>
+                        <button onclick="deleteNotification(this)" class="text-gray-400 hover:text-red-500">
+                            <i class="fa fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 填写人验证模态框 -->
+    <div id="verificationModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fa fa-shield text-primary text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900">身份验证</h3>
+                <p class="text-sm text-gray-600">为了保护数据安全，请验证您有权查看该填写人的信息</p>
+            </div>
+            
+            <div id="platformSpecialHint" class="hidden p-3 bg-yellow-50 border border-yellow-200 rounded-lg mb-4">
+                <div class="flex items-start space-x-2">
+                    <i class="fa fa-exclamation-triangle text-yellow-600 mt-1"></i>
+                    <div>
+                        <p id="specialHintText" class="text-sm text-yellow-800"></p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">填写人</label>
+                    <div class="p-3 bg-gray-50 rounded-lg text-center">
+                        <span id="verifyNickname" class="font-medium text-gray-900"></span>
+                    </div>
+                </div>
+                
+                <div id="dynamicVerificationForm" class="space-y-4">
+                    <!-- 动态生成的验证选项 -->
+                </div>
+                
+                <div id="verificationFeedback" class="hidden p-3 rounded-lg text-center text-sm"></div>
+            </div>
+            
+            <div class="flex space-x-3 mt-6">
+                <button onclick="cancelVerification()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                    取消
+                </button>
+                <button onclick="submitVerification()" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                    <i class="fa fa-check mr-2"></i>验证
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加用户模态框 -->
+    <div id="addUserModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="fa fa-plus mr-2 text-primary"></i>添加用户
+                </h3>
+                <button onclick="closeAddUserModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">用户名 <span class="text-danger">*</span></label>
+                    <input type="text" id="newUsername" placeholder="请输入用户名" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">密码 <span class="text-danger">*</span></label>
+                    <input type="password" id="newPassword" placeholder="请输入密码" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">确认密码 <span class="text-danger">*</span></label>
+                    <input type="password" id="confirmPassword" placeholder="请确认密码" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">用户昵称 <span class="text-danger">*</span></label>
+                    <input type="text" id="newNickname" placeholder="请输入用户昵称" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">用户角色 <span class="text-danger">*</span></label>
+                    <select id="newUserRole" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                        <option value="">请选择角色</option>
+                        <option value="admin">管理员</option>
+                        <option value="leader">团长</option>
+                        <option value="user">普通用户</option>
+                    </select>
+                </div>
+                
+                <div id="teamSelection" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">所属团队</label>
+                    <select id="newUserTeam" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                        <option value="">请选择团队</option>
+                        <option value="east">华东团队</option>
+                        <option value="south">华南团队</option>
+                        <option value="north">华北团队</option>
+                        <option value="west">华西团队</option>
+                        <option value="northeast">东北团队</option>
+                        <option value="central">华中团队</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">手机号</label>
+                    <input type="tel" id="newUserPhone" placeholder="请输入手机号" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                </div>
+            </div>
+            
+            <div class="flex space-x-3 mt-6">
+                <button onclick="closeAddUserModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                    取消
+                </button>
+                <button onclick="addNewUser()" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                    <i class="fa fa-check mr-2"></i>创建用户
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加平台模态框 -->
+    <div id="addPlatformModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="fa fa-plus mr-2 text-primary"></i>添加平台
+                </h3>
+                <button onclick="closeAddPlatformModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">平台名称 <span class="text-danger">*</span></label>
+                    <input type="text" id="newPlatformName" placeholder="请输入平台名称（如：小红书）" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">平台标识 <span class="text-danger">*</span></label>
+                    <input type="text" id="newPlatformCode" placeholder="请输入平台标识（如：xiaohongshu）" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">平台颜色</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="color" id="newPlatformColor" value="#165DFF" 
+                               class="w-8 h-8 border border-gray-300 rounded cursor-pointer">
+                        <input type="text" id="newPlatformColorText" value="#165DFF" 
+                               class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">是否启用</label>
+                    <select id="newPlatformStatus" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                        <option value="active">启用</option>
+                        <option value="inactive">禁用</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">特殊验证</label>
+                    <select id="newPlatformVerification" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                        <option value="normal">普通验证</option>
+                        <option value="force_id">强制ID验证（如淘宝逛逛）</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="flex space-x-3 mt-6">
+                <button onclick="closeAddPlatformModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                    取消
+                </button>
+                <button onclick="addNewPlatform()" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                    <i class="fa fa-check mr-2"></i>创建平台
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加分成规则模态框 -->
+    <div id="addCommissionModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="fa fa-plus mr-2 text-primary"></i>添加分成规则
+                </h3>
+                <button onclick="closeAddCommissionModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">选择团长 <span class="text-danger">*</span></label>
+                    <select id="commissionLeader" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                        <option value="">请选择团长</option>
+                        <option value="leader">华东团队长 (leader)</option>
+                        <option value="leader2">华南团队长 (leader2)</option>
+                        <option value="leader3">华北团队长 (leader3)</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">选择平台 <span class="text-danger">*</span></label>
+                    <select id="commissionPlatform" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                        <option value="">请选择平台</option>
+                        <!-- 动态生成平台选项 -->
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">分成比例 (%) <span class="text-danger">*</span></label>
+                    <div class="flex items-center space-x-2">
+                        <input type="number" id="commissionRate" min="0" max="100" step="0.1" value="5.0"
+                               class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                        <span class="text-gray-600">%</span>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">生效日期</label>
+                    <input type="date" id="commissionStartDate" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">备注</label>
+                    <textarea id="commissionRemark" rows="2" placeholder="请输入备注信息"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary"></textarea>
+                </div>
+            </div>
+            
+            <div class="flex space-x-3 mt-6">
+                <button onclick="closeAddCommissionModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                    取消
+                </button>
+                <button onclick="addNewCommission()" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                    <i class="fa fa-check mr-2"></i>创建规则
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 团长收益分成详情模态框 -->
+    <div id="leaderCommissionModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center">
+        <div class="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="fa fa-percent mr-2 text-primary"></i>团长收益分成详情
+                </h3>
+                <div class="flex space-x-3">
+                    <button onclick="exportLeaderCommission()" class="bg-success text-white px-4 py-2 rounded-lg hover:bg-success/90 transition-colors">
+                        <i class="fa fa-download mr-2"></i>导出报表
+                    </button>
+                    <button onclick="closeLeaderCommissionModal()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 收益概览 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="text-center p-4 bg-gradient-to-r from-primary to-secondary rounded-lg text-white">
+                    <p class="text-lg font-bold">¥89,540</p>
+                    <p class="text-sm opacity-90">下属总收益</p>
+                </div>
+                <div class="text-center p-4 bg-gradient-to-r from-success to-secondary rounded-lg text-white">
+                    <p class="text-lg font-bold">¥4,477</p>
+                    <p class="text-sm opacity-90">团长分成</p>
+                </div>
+                <div class="text-center p-4 bg-gradient-to-r from-accent to-primary rounded-lg text-white">
+                    <p class="text-lg font-bold">5.0%</p>
+                    <p class="text-sm opacity-90">平均分成比例</p>
+                </div>
+            </div>
+            
+            <!-- 平台分成详情 -->
+            <div class="mb-6">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fa fa-table mr-2 text-primary"></i>平台分成详情
+                </h4>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">平台</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">下属总收益</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分成比例</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">团长分成</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">订单数</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="platform-badge bg-red-100 text-red-800">京东</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">¥45,680</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="commission-badge">5.0%</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-primary">¥2,284</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">123</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="platform-badge bg-orange-100 text-orange-800">淘宝</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">¥28,920</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="commission-badge">4.5%</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-primary">¥1,301</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">234</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="platform-badge bg-purple-100 text-purple-800">淘宝逛逛</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">¥14,940</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="commission-badge">6.0%</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-primary">¥896</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">89</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- 下属成员收益明细 -->
+            <div>
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fa fa-users mr-2 text-primary"></i>下属成员收益明细
+                </h4>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">成员姓名</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">平台</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">账号</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">收益</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分成</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">订单数</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">张三</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="platform-badge bg-red-100 text-red-800">京东</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">jd_zhang3</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">¥15,200</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-primary">¥760</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">45</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">张三</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="platform-badge bg-orange-100 text-orange-800">淘宝</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">tb_zhang3</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">¥8,800</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-primary">¥396</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">89</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">李四</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="platform-badge bg-red-100 text-red-800">京东</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">jd_lisi</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">¥12,800</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-primary">¥640</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">32</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">王五</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="platform-badge bg-purple-100 text-purple-800">淘宝逛逛</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">gg_wangwu</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">¥14,940</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-primary">¥896</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">89</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentUser = null;
+        let notifications = [
+            "📢 【重要通知】2024年10月收益统计已更新，请及时查看",
+            "📣 新功能上线：支持抖音小店数据导入，欢迎体验",
+            "⚠️ 系统将于2024-10-25 23:00进行维护，请提前做好准备",
+            "🎉 恭喜华东团队本月收益突破100万！"
+        ];
+        
+        // 模拟数据库
+        const userDatabase = {
+            "admin": {
+                username: "admin",
+                password: "admin123",
+                nickname: "超级管理员",
+                role: "super_admin",
+                team: "all",
+                phone: "13800138000",
+                status: "active"
+            },
+            "leader": {
+                username: "leader",
+                password: "leader123",
+                nickname: "华东团队长",
+                role: "leader",
+                team: "east",
+                phone: "13800138001",
+                status: "active"
+            },
+            "user": {
+                username: "user",
+                password: "user123",
+                nickname: "普通用户",
+                role: "user",
+                team: "east",
+                phone: "13800138002",
+                status: "active"
+            }
+        };
+        
+        // 平台数据库
+        let platformDatabase = [
+            { id: "jd", name: "京东", color: "#FF4D4F", status: "active", verification: "normal", accountCount: 45 },
+            { id: "taobao", name: "淘宝", color: "#FAAD14", status: "active", verification: "normal", accountCount: 56 },
+            { id: "taobao_guangguang", name: "淘宝逛逛", color: "#722ED1", status: "active", verification: "force_id", accountCount: 32 },
+            { id: "dewu", name: "得物", color: "#1890FF", status: "active", verification: "normal", accountCount: 28 },
+            { id: "pdd", name: "拼多多", color: "#52C41A", status: "active", verification: "normal", accountCount: 32 },
+            { id: "douyin", name: "抖音", color: "#FE2C55", status: "active", verification: "normal", accountCount: 25 }
+        ];
+        
+        // 分成规则数据库
+        let commissionRules = [
+            { leaderId: "leader", leaderName: "华东团队长", team: "east", platformId: "jd", platformName: "京东", rate: 5.0, startDate: "2024-10-01", remark: "标准分成" },
+            { leaderId: "leader", leaderName: "华东团队长", team: "east", platformId: "taobao", platformName: "淘宝", rate: 4.5, startDate: "2024-10-01", remark: "标准分成" },
+            { leaderId: "leader", leaderName: "华东团队长", team: "east", platformId: "taobao_guangguang", platformName: "淘宝逛逛", rate: 6.0, startDate: "2024-10-01", remark: "高分成激励" },
+            { leaderId: "leader2", leaderName: "华南团队长", team: "south", platformId: "jd", platformName: "京东", rate: 4.8, startDate: "2024-10-01", remark: "标准分成" },
+            { leaderId: "leader2", leaderName: "华南团队长", team: "south", platformId: "taobao", platformName: "淘宝", rate: 4.2, startDate: "2024-10-01", remark: "标准分成" }
+        ];
+        
+        // 团队数据
+        const teams = {
+            "east": { name: "华东团队", leader: "leader", memberCount: 15 },
+            "south": { name: "华南团队", leader: "leader2", memberCount: 12 },
+            "north": { name: "华北团队", leader: "leader3", memberCount: 15 },
+            "west": { name: "华西团队", leader: "leader4", memberCount: 8 },
+            "northeast": { name: "东北团队", leader: "leader5", memberCount: 6 },
+            "central": { name: "华中团队", leader: "leader6", memberCount: 5 }
+        };
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 设置默认月份为当前月
+            const today = new Date();
+            const currentMonth = today.toISOString().slice(0, 7);
+            document.getElementById('monthSelect').value = currentMonth;
+            document.getElementById('dataMonthSelect').value = currentMonth;
+            
+            // 设置默认日期为今天
+            const todayDate = today.toISOString().slice(0, 10);
+            document.getElementById('commissionStartDate').value = todayDate;
+            
+            // 角色选择变化时显示/隐藏团队选择
+            document.getElementById('newUserRole').addEventListener('change', function() {
+                const teamSelection = document.getElementById('teamSelection');
+                if (this.value === 'leader' || this.value === 'user') {
+                    teamSelection.classList.remove('hidden');
+                } else {
+                    teamSelection.classList.add('hidden');
+                }
+            });
+            
+            // 颜色选择器同步
+            document.getElementById('newPlatformColor').addEventListener('input', function() {
+                document.getElementById('newPlatformColorText').value = this.value;
+            });
+            
+            document.getElementById('newPlatformColorText').addEventListener('input', function() {
+                document.getElementById('newPlatformColor').value = this.value;
+            });
+            
+            // 初始化消息列表
+            updateNotificationList();
+            
+            // 初始化平台列表
+            renderPlatformOptions();
+            renderPlatformTemplates();
+        });
+
+        // 登录功能
+        function login() {
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!username || !password) {
+                alert('请输入用户名和密码');
+                return;
+            }
+            
+            // 验证用户
+            const user = userDatabase[username];
+            if (!user || user.password !== password) {
+                alert('用户名或密码错误');
+                return;
+            }
+            
+            // 登录成功
+            currentUser = user;
+            showMainSystem();
+        }
+        
+        // 显示主系统
+        function showMainSystem() {
+            // 隐藏登录页面
+            document.getElementById('loginPage').classList.add('hidden');
+            
+            // 显示主系统
+            document.getElementById('notificationBar').classList.remove('hidden');
+            document.getElementById('mainNav').classList.remove('hidden');
+            document.getElementById('mainContent').classList.remove('hidden');
+            document.getElementById('mainFooter').classList.remove('hidden');
+            
+            // 更新用户信息
+            document.getElementById('currentUsername').textContent = currentUser.nickname;
+            
+            // 更新角色徽章
+            const roleBadge = document.getElementById('userRoleBadge');
+            const roleConfig = {
+                'super_admin': { text: '超级管理员', bg: 'bg-red-100', textColor: 'text-red-800' },
+                'admin': { text: '管理员', bg: 'bg-orange-100', textColor: 'text-orange-800' },
+                'leader': { text: '团长', bg: 'bg-blue-100', textColor: 'text-blue-800' },
+                'user': { text: '普通用户', bg: 'bg-gray-100', textColor: 'text-gray-800' }
+            };
+            
+            const config = roleConfig[currentUser.role];
+            roleBadge.className = `role-badge ${config.bg} ${config.textColor}`;
+            roleBadge.textContent = config.text;
+            
+            // 显示/隐藏管理选项卡
+            const adminTab = document.getElementById('tab-admin');
+            if (currentUser.role === 'super_admin' || currentUser.role === 'admin') {
+                adminTab.classList.remove('hidden');
+            } else {
+                adminTab.classList.add('hidden');
+            }
+            
+            // 根据角色限制团队筛选
+            if (currentUser.role === 'leader') {
+                const teamSelect = document.getElementById('teamSelect');
+                const uploadTeamSelect = document.getElementById('uploadTeamSelect');
+                
+                // 团长只能查看自己团队的数据
+                Array.from(teamSelect.options).forEach(option => {
+                    if (option.value && option.value !== currentUser.team) {
+                        option.disabled = true;
+                    }
+                });
+                
+                // 团长只能上传自己团队的数据
+                Array.from(uploadTeamSelect.options).forEach(option => {
+                    if (option.value && option.value !== currentUser.team) {
+                        option.disabled = true;
+                    }
+                });
+                
+                // 默认选择自己的团队
+                teamSelect.value = currentUser.team;
+                uploadTeamSelect.value = currentUser.team;
+                
+                // 隐藏团队筛选标签
+                document.querySelector('#teamFilterSection label').textContent = '我的团队';
+            }
+            
+            // 初始化图表
+            setTimeout(initCharts, 500);
+            
+            // 如果是团长，显示分成详情按钮
+            if (currentUser.role === 'leader') {
+                setTimeout(() => {
+                    showLeaderCommissionButton();
+                }, 1000);
+            }
+        }
+        
+        // 显示团长分成详情按钮
+        function showLeaderCommissionButton() {
+            const teamSection = document.querySelector('#content-team .lg\\:col-span-2');
+            const button = document.createElement('button');
+            button.className = 'bg-accent text-white px-4 py-2 rounded-lg hover:bg-accent/90 transition-colors mb-4';
+            button.innerHTML = '<i class="fa fa-percent mr-2"></i>查看收益分成详情';
+            button.onclick = () => showLeaderCommissionModal();
+            
+            teamSection.insertBefore(button, teamSection.firstChild);
+        }
+        
+        // 退出登录
+        function logout() {
+            if (confirm('确定要退出登录吗？')) {
+                currentUser = null;
+                location.reload();
+            }
+        }
+        
+        // 切换用户菜单
+        function toggleUserMenu() {
+            const menu = document.getElementById('userMenu');
+            menu.classList.toggle('hidden');
+        }
+        
+        // 显示用户资料
+        function showUserProfile() {
+            alert('个人资料功能正在开发中...');
+            toggleUserMenu();
+        }
+        
+        // 显示修改密码
+        function showChangePassword() {
+            alert('修改密码功能正在开发中...');
+            toggleUserMenu();
+        }
+        
+        // 选项卡切换功能
+        function switchTab(tabName) {
+            // 隐藏所有内容
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            // 移除所有选项卡的激活状态
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active', 'border-primary', 'text-primary');
+                btn.classList.add('border-transparent', 'text-gray-500');
+            });
+            
+            // 显示选中的内容
+            document.getElementById('content-' + tabName).classList.remove('hidden');
+            
+            // 激活选中的选项卡
+            const activeTab = document.getElementById('tab-' + tabName);
+            activeTab.classList.add('active', 'border-primary', 'text-primary');
+            activeTab.classList.remove('border-transparent', 'text-gray-500');
+            
+            // 如果是数据分析选项卡，初始化图表
+            if (tabName === 'analysis') {
+                setTimeout(initCharts, 100);
+            }
+            
+            // 如果是团队管理选项卡，初始化团队图表
+            if (tabName === 'team') {
+                setTimeout(initTeamChart, 100);
+            }
+            
+            // 如果是系统管理选项卡，初始化管理页面
+            if (tabName === 'admin') {
+                setTimeout(() => {
+                    showAdminPage('user-management');
+                    renderPlatformList();
+                    renderCommissionList();
+                }, 100);
+            }
+            
+            // 关闭用户菜单
+            document.getElementById('userMenu').classList.add('hidden');
+        }
+        
+        // 渲染平台选项
+        function renderPlatformOptions() {
+            const platformSelects = [
+                document.getElementById('platformSelect'),
+                document.getElementById('uploadPlatformSelect'),
+                document.getElementById('commissionPlatform')
+            ];
+            
+            platformSelects.forEach(select => {
+                if (select) {
+                    const options = platformDatabase.map(platform => `
+                        <option value="${platform.id}" style="color: ${platform.color}">
+                            ${platform.name} (${platform.accountCount}个账号)
+                        </option>
+                    `).join('');
+                    select.innerHTML += options;
+                }
+            });
+        }
+        
+        // 渲染平台模板
+        function renderPlatformTemplates() {
+            const container = document.getElementById('platformTemplates');
+            if (container) {
+                container.innerHTML = platformDatabase.map(platform => `
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center space-x-3">
+                            <span class="platform-badge" style="background-color: ${platform.color}20; color: ${platform.color}">
+                                ${platform.name}
+                            </span>
+                            <span class="text-sm text-gray-700">${platform.name}账单模板.xlsx</span>
+                        </div>
+                        <button class="text-primary hover:text-primary/80 text-sm">
+                            <i class="fa fa-download mr-1"></i>下载
+                        </button>
+                    </div>
+                `).join('');
+            }
+        }
+        
+        // 搜索功能
+        function searchData() {
+            const searchType = document.querySelector('input[name="searchType"]:checked').value;
+            const searchInput = document.getElementById('searchInput').value;
+            const platform = document.getElementById('platformSelect').value;
+            const team = document.getElementById('teamSelect').value;
+            const month = document.getElementById('monthSelect').value;
+            
+            if (!searchInput) {
+                alert('请输入查询内容');
+                return;
+            }
+            
+            // 如果是按填写人查询，需要验证
+            if (searchType === 'nickname') {
+                showVerificationModal(searchInput, platform);
+                return;
+            }
+            
+            // 模拟搜索加载
+            const resultsDiv = document.getElementById('searchResults');
+            resultsDiv.innerHTML = '<div class="text-center py-12"><i class="fa fa-spinner fa-spin text-primary text-2xl mb-4"></i><p class="text-gray-600">正在搜索数据...</p></div>';
+            
+            // 模拟搜索结果
+            setTimeout(() => {
+                // 这里可以根据实际搜索条件返回不同的结果
+                resultsDiv.innerHTML = resultsDiv.innerHTML; // 保持现有结果
+            }, 1000);
+        }
+        
+        // 显示验证模态框
+        function showVerificationModal(nickname, platform) {
+            const modal = document.getElementById('verificationModal');
+            const verifyNickname = document.getElementById('verifyNickname');
+            const formContainer = document.getElementById('dynamicVerificationForm');
+            
+            verifyNickname.textContent = nickname;
+            
+            // 根据平台生成验证选项
+            const verificationOptions = getVerificationOptions(platform);
+            renderVerificationForm(verificationOptions);
+            
+            // 显示平台特殊提示
+            showPlatformSpecialHint(platform);
+            
+            // 存储当前验证信息
+            modal.dataset.nickname = nickname;
+            modal.dataset.platform = platform;
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+        
+        // 获取验证选项
+        function getVerificationOptions(platform) {
+            const options = [];
+            
+            // 查找平台配置
+            const platformConfig = platformDatabase.find(p => p.id === platform);
+            
+            // 淘宝逛逛特殊处理或强制ID验证的平台
+            if (platformConfig && platformConfig.verification === 'force_id') {
+                return [{
+                    type: 'accountId',
+                    label: `${platformConfig.name}账号ID`,
+                    required: true,
+                    hint: `${platformConfig.name}昵称可能重复，必须验证账号ID`
+                }];
+            }
+            
+            // 其他平台按优先级添加验证方式
+            options.push({
+                type: 'phone',
+                label: '绑定手机号',
+                required: false,
+                hint: '推荐使用手机号验证，更快捷准确'
+            });
+            
+            options.push({
+                type: 'accountId',
+                label: '账号ID',
+                required: false,
+                hint: '平台唯一标识符'
+            });
+            
+            options.push({
+                type: 'username',
+                label: '账号昵称',
+                required: false,
+                hint: '平台显示名称'
+            });
+            
+            return options;
+        }
+        
+        // 渲染验证表单
+        function renderVerificationForm(options) {
+            const formContainer = document.getElementById('dynamicVerificationForm');
+            
+            formContainer.innerHTML = options.map((option, index) => `
+                <div class="verification-option ${option.required ? 'required' : ''}">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        ${option.label} 
+                        ${option.required ? '<span class="text-danger">*</span>' : ''}
+                    </label>
+                    <input type="${option.type === 'phone' ? 'tel' : 'text'}" 
+                           id="verification_${option.type}" 
+                           placeholder="请输入${option.label}"
+                           ${option.required ? 'required' : ''}
+                           oninput="checkVerificationInput('${option.type}', this.value)"
+                           class="w-full px-3 py-2 border ${option.required ? 'border-danger' : 'border-gray-300'} rounded-lg focus:ring-primary focus:border-primary">
+                    ${option.hint ? `<p class="text-xs text-gray-500 mt-1">${option.hint}</p>` : ''}
+                </div>
+            `).join('');
+        }
+        
+        // 显示平台特殊提示
+        function showPlatformSpecialHint(platform) {
+            const hintDiv = document.getElementById('platformSpecialHint');
+            const hintText = document.getElementById('specialHintText');
+            
+            const platformConfig = platformDatabase.find(p => p.id === platform);
+            
+            if (platformConfig && platformConfig.verification === 'force_id') {
+                hintText.textContent = `${platformConfig.name}平台昵称重复率较高，为确保验证准确性，请提供账号ID进行验证。`;
+                hintDiv.classList.remove('hidden');
+            } else {
+                hintDiv.classList.add('hidden');
+            }
+        }
+        
+        // 检查验证输入
+        function checkVerificationInput(inputType, value) {
+            const feedbackDiv = document.getElementById('verificationFeedback');
+            let isValid = false;
+            let feedback = '';
+            let feedbackClass = '';
+            
+            // 简单验证逻辑
+            switch (inputType) {
+                case 'phone':
+                    const phonePattern = /^1[3-9]\d{9}$/;
+                    if (!phonePattern.test(value)) {
+                        feedback = '请输入正确的手机号格式';
+                        feedbackClass = 'bg-red-50 text-red-600 border border-red-200';
+                    } else {
+                        feedback = '手机号格式正确 ✅';
+                        feedbackClass = 'bg-green-50 text-green-600 border border-green-200';
+                        isValid = true;
+                    }
+                    break;
+                    
+                case 'accountId':
+                    if (value.length < 4) {
+                        feedback = '账号ID格式不正确';
+                        feedbackClass = 'bg-red-50 text-red-600 border border-red-200';
+                    } else {
+                        feedback = '账号ID格式正确 ✅';
+                        feedbackClass = 'bg-green-50 text-green-600 border border-green-200';
+                        isValid = true;
+                    }
+                    break;
+                    
+                case 'username':
+                    if (value.length < 2) {
+                        feedback = '请输入有效的账号昵称';
+                        feedbackClass = 'bg-red-50 text-red-600 border border-red-200';
+                    } else {
+                        feedback = '账号昵称格式正确 ✅';
+                        feedbackClass = 'bg-green-50 text-green-600 border border-green-200';
+                        isValid = true;
+                    }
+                    break;
+            }
+            
+            if (value) {
+                feedbackDiv.className = `p-3 rounded-lg text-center text-sm ${feedbackClass}`;
+                feedbackDiv.textContent = feedback;
+                feedbackDiv.classList.remove('hidden');
+            } else {
+                feedbackDiv.classList.add('hidden');
+            }
+        }
+        
+        // 提交验证
+        function submitVerification() {
+            const modal = document.getElementById('verificationModal');
+            const nickname = modal.dataset.nickname;
+            const platform = modal.dataset.platform;
+            
+            // 收集验证信息
+            const verificationData = {};
+            const inputs = modal.querySelectorAll('input[id^="verification_"]');
+            
+            inputs.forEach(input => {
+                const type = input.id.split('_')[1];
+                if (input.value) {
+                    verificationData[type] = input.value;
+                }
+            });
+            
+            // 验证必填项
+            const requiredInputs = modal.querySelectorAll('input[required]');
+            for (let input of requiredInputs) {
+                if (!input.value) {
+                    alert('请填写所有必填项');
+                    return;
+                }
+            }
+            
+            // 模拟验证过程
+            const feedbackDiv = document.getElementById('verificationFeedback');
+            feedbackDiv.className = 'p-3 rounded-lg text-center text-sm bg-yellow-50 text-yellow-600 border border-yellow-200';
+            feedbackDiv.textContent = '正在验证...';
+            feedbackDiv.classList.remove('hidden');
+            
+            setTimeout(() => {
+                // 模拟验证成功
+                feedbackDiv.className = 'p-3 rounded-lg text-center text-sm bg-green-50 text-green-600 border border-green-200';
+                feedbackDiv.textContent = '验证成功！正在加载数据...';
+                
+                setTimeout(() => {
+                    closeVerificationModal();
+                    // 执行搜索
+                    performSearchAfterVerification(nickname, platform);
+                }, 1500);
+            }, 1000);
+        }
+        
+        // 验证后执行搜索
+        function performSearchAfterVerification(nickname, platform) {
+            const resultsDiv = document.getElementById('searchResults');
+            resultsDiv.innerHTML = '<div class="text-center py-12"><i class="fa fa-spinner fa-spin text-primary text-2xl mb-4"></i><p class="text-gray-600">正在搜索数据...</p></div>';
+            
+            setTimeout(() => {
+                // 这里可以根据实际搜索条件返回不同的结果
+                resultsDiv.innerHTML = resultsDiv.innerHTML; // 保持现有结果
+            }, 1000);
+        }
+        
+        // 取消验证
+        function cancelVerification() {
+            closeVerificationModal();
+        }
+        
+        // 关闭验证模态框
+        function closeVerificationModal() {
+            const modal = document.getElementById('verificationModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            
+            // 清除验证信息
+            modal.removeAttribute('data-nickname');
+            modal.removeAttribute('data-platform');
+            
+            // 清除反馈
+            document.getElementById('verificationFeedback').classList.add('hidden');
+        }
+        
+        // 文件上传处理
+        function handleFileUpload(event) {
+            const files = event.target.files;
+            const team = document.getElementById('uploadTeamSelect').value;
+            const platform = document.getElementById('uploadPlatformSelect').value;
+            const dataType = document.getElementById('dataTypeSelect').value;
+            const month = document.getElementById('dataMonthSelect').value;
+            
+            if (!team) {
+                alert('请选择所属团队');
+                return;
+            }
+            
+            if (!platform) {
+                alert('请选择平台');
+                return;
+            }
+            
+            if (files.length === 0) return;
+            
+            // 显示上传进度
+            showUploadProgress(files);
+            
+            // 模拟文件解析和字段匹配
+            setTimeout(() => {
+                showMappingWizard(files[0], platform);
+            }, 1000);
+        }
+        
+        // 显示上传进度
+        function showUploadProgress(files) {
+            // 这里可以添加上传进度的显示逻辑
+            console.log('上传文件:', files);
+        }
+        
+        // 显示字段匹配向导
+        function showMappingWizard(file, platform) {
+            const modal = document.getElementById('mappingWizard');
+            const sourceFields = document.getElementById('sourceFields');
+            const targetMappings = document.getElementById('targetMappings');
+            
+            // 模拟解析文件字段（实际项目中需要真实解析Excel/CSV）
+            const sampleFields = ['订单编号', '商品名称', '买家昵称', '付款时间', '实付款', '订单状态'];
+            
+            // 生成源文件字段列表
+            sourceFields.innerHTML = sampleFields.map(field => `
+                <div class="p-2 bg-gray-50 rounded text-sm">${field}</div>
+            `).join('');
+            
+            // 生成目标字段匹配列表
+            const systemFields = [
+                { name: 'order_id', label: '订单编号' },
+                { name: 'product_name', label: '商品名称' },
+                { name: 'buyer_name', label: '买家昵称' },
+                { name: 'pay_time', label: '付款时间' },
+                { name: 'amount', label: '订单金额' },
+                { name: 'status', label: '订单状态' }
+            ];
+            
+            targetMappings.innerHTML = systemFields.map(field => `
+                <div class="flex items-center space-x-2">
+                    <select class="flex-1 px-3 py-1 border border-gray-300 rounded text-sm focus:ring-primary focus:border-primary">
+                        <option value="">-- 请选择 --</option>
+                        ${sampleFields.map(f => `<option value="${f}">${f}</option>`).join('')}
+                    </select>
+                    <span class="text-sm text-gray-600">→ ${field.label}</span>
+                </div>
+            `).join('');
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+        
+        // 关闭字段匹配向导
+        function closeMappingWizard() {
+            const modal = document.getElementById('mappingWizard');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+        
+        // 自动匹配字段
+        function autoMapFields() {
+            // 模拟智能匹配逻辑
+            const mappings = {
+                '订单编号': 'order_id',
+                '商品名称': 'product_name',
+                '买家昵称': 'buyer_name',
+                '付款时间': 'pay_time',
+                '实付款': 'amount',
+                '订单状态': 'status'
+            };
+            
+            // 应用自动匹配
+            const selects = document.querySelectorAll('#targetMappings select');
+            selects.forEach(select => {
+                const fieldName = select.parentElement.querySelector('span').textContent.split('→ ')[1];
+                for (let [source, target] of Object.entries(mappings)) {
+                    if (target === fieldName.toLowerCase().replace(/\s+/g, '_')) {
+                        select.value = source;
+                        break;
+                    }
+                }
+            });
+            
+            alert('自动匹配完成！');
+        }
+        
+        // 确认匹配
+        function confirmMapping() {
+            // 收集匹配结果
+            const selects = document.querySelectorAll('#targetMappings select');
+            const mappingResults = [];
+            
+            selects.forEach(select => {
+                if (select.value) {
+                    const targetField = select.parentElement.querySelector('span').textContent.split('→ ')[1];
+                    mappingResults.push({
+                        source: select.value,
+                        target: targetField
+                    });
+                }
+            });
+            
+            console.log('匹配结果:', mappingResults);
+            alert('字段匹配成功！开始导入数据...');
+            closeMappingWizard();
+            
+            // 模拟数据导入
+            setTimeout(() => {
+                alert('数据导入完成！');
+            }, 2000);
+        }
+        
+        // 保存匹配规则
+        function saveMappingRule() {
+            alert('匹配规则已保存！下次上传相同格式文件时将自动应用。');
+        }
+        
+        // 消息管理
+        function toggleNotificationManager() {
+            const modal = document.getElementById('notificationModal');
+            modal.classList.toggle('hidden');
+            modal.classList.toggle('flex');
+        }
+        
+        // 添加消息
+        function addNotification() {
+            const text = document.getElementById('notificationText').value;
+            const type = document.getElementById('notificationType').value;
+            const duration = document.getElementById('notificationDuration').value;
+            
+            if (!text) {
+                alert('请输入消息内容');
+                return;
+            }
+            
+            // 获取消息前缀
+            const prefixMap = {
+                'info': '📢',
+                'announcement': '📣',
+                'warning': '⚠️',
+                'celebration': '🎉'
+            };
+            
+            const prefix = prefixMap[type] || '📢';
+            const newNotification = `${prefix} ${text}`;
+            
+            // 添加到消息列表
+            notifications.unshift(newNotification);
+            
+            // 更新滚动消息
+            updateMarqueeContent();
+            
+            // 更新消息列表
+            updateNotificationList();
+            
+            // 清空输入
+            document.getElementById('notificationText').value = '';
+            
+            alert('消息添加成功！');
+        }
+        
+        // 删除消息
+        function deleteNotification(button) {
+            const notification = button.parentElement.querySelector('span').textContent;
+            const index = notifications.indexOf(notification);
+            if (index > -1) {
+                notifications.splice(index, 1);
+                updateMarqueeContent();
+                updateNotificationList();
+            }
+            button.parentElement.remove();
+        }
+        
+        // 清空所有消息
+        function clearAllNotifications() {
+            if (confirm('确定要清空所有消息吗？')) {
+                notifications = [];
+                updateMarqueeContent();
+                updateNotificationList();
+            }
+        }
+        
+        // 更新滚动消息内容
+        function updateMarqueeContent() {
+            const marqueeContent = document.getElementById('marqueeContent');
+            marqueeContent.innerHTML = notifications.map(notification => 
+                `<span class="inline-block px-8">${notification}</span>`
+            ).join('');
+        }
+        
+        // 更新消息列表
+        function updateNotificationList() {
+            const notificationList = document.getElementById('notificationList');
+            notificationList.innerHTML = notifications.map(notification => `
+                <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                    <span class="text-sm text-gray-700">${notification}</span>
+                    <button onclick="deleteNotification(this)" class="text-gray-400 hover:text-red-500">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+        
+        // 显示管理员页面
+        function showAdminPage(pageName) {
+            // 隐藏所有管理页面
+            document.querySelectorAll('.admin-page').forEach(page => {
+                page.classList.add('hidden');
+            });
+            
+            // 显示选中的页面
+            document.getElementById(`admin-${pageName}`).classList.remove('hidden');
+            
+            // 更新菜单状态
+            document.querySelectorAll('#content-admin button').forEach(btn => {
+                btn.classList.remove('bg-primary/10', 'text-primary');
+                btn.classList.add('hover:bg-gray-50', 'text-gray-700');
+            });
+            
+            event.target.classList.add('bg-primary/10', 'text-primary');
+            event.target.classList.remove('hover:bg-gray-50', 'text-gray-700');
+        }
+        
+        // 渲染平台列表
+        function renderPlatformList() {
+            const container = document.getElementById('platformList');
+            if (container) {
+                container.innerHTML = platformDatabase.map(platform => `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="platform-badge" style="background-color: ${platform.color}20; color: ${platform.color}">
+                                ${platform.name}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${platform.id}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full ${platform.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                                ${platform.status === 'active' ? '启用' : '禁用'}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${platform.accountCount}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2024-10-01</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <button class="text-primary hover:text-primary/80 mr-3">编辑</button>
+                            <button class="text-gray-400 hover:text-gray-600">${platform.status === 'active' ? '禁用' : '启用'}</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+        
+        // 渲染分成规则列表
+        function renderCommissionList() {
+            const container = document.getElementById('commissionList');
+            if (container) {
+                container.innerHTML = commissionRules.map(rule => `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${rule.leaderName}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${teams[rule.team]?.name || '未知团队'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="platform-badge" style="background-color: ${getPlatformColor(rule.platformId)}20; color: ${getPlatformColor(rule.platformId)}">
+                                ${rule.platformName}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="commission-badge">${rule.rate}%</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${rule.startDate}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <button class="text-primary hover:text-primary/80 mr-3">编辑</button>
+                            <button class="text-danger hover:text-danger/80">删除</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+        
+        // 获取平台颜色
+        function getPlatformColor(platformId) {
+            const platform = platformDatabase.find(p => p.id === platformId);
+            return platform ? platform.color : '#165DFF';
+        }
+        
+        // 显示添加平台模态框
+        function showAddPlatformModal() {
+            const modal = document.getElementById('addPlatformModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+        
+        // 关闭添加平台模态框
+        function closeAddPlatformModal() {
+            const modal = document.getElementById('addPlatformModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            
+            // 清空表单
+            document.getElementById('newPlatformName').value = '';
+            document.getElementById('newPlatformCode').value = '';
+            document.getElementById('newPlatformColor').value = '#165DFF';
+            document.getElementById('newPlatformColorText').value = '#165DFF';
+            document.getElementById('newPlatformStatus').value = 'active';
+            document.getElementById('newPlatformVerification').value = 'normal';
+        }
+        
+        // 添加新平台
+        function addNewPlatform() {
+            const name = document.getElementById('newPlatformName').value;
+            const code = document.getElementById('newPlatformCode').value;
+            const color = document.getElementById('newPlatformColor').value;
+            const status = document.getElementById('newPlatformStatus').value;
+            const verification = document.getElementById('newPlatformVerification').value;
+            
+            if (!name || !code) {
+                alert('请填写平台名称和标识');
+                return;
+            }
+            
+            // 检查平台标识是否已存在
+            const exists = platformDatabase.some(p => p.id === code);
+            if (exists) {
+                alert('平台标识已存在');
+                return;
+            }
+            
+            // 创建新平台
+            const newPlatform = {
+                id: code,
+                name: name,
+                color: color,
+                status: status,
+                verification: verification,
+                accountCount: 0
+            };
+            
+            // 添加到平台数据库
+            platformDatabase.push(newPlatform);
+            
+            // 更新界面
+            renderPlatformOptions();
+            renderPlatformTemplates();
+            renderPlatformList();
+            
+            alert('平台添加成功！');
+            closeAddPlatformModal();
+        }
+        
+        // 显示添加分成规则模态框
+        function showAddCommissionModal() {
+            const modal = document.getElementById('addCommissionModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+        
+        // 关闭添加分成规则模态框
+        function closeAddCommissionModal() {
+            const modal = document.getElementById('addCommissionModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            
+            // 清空表单
+            document.getElementById('commissionLeader').value = '';
+            document.getElementById('commissionPlatform').value = '';
+            document.getElementById('commissionRate').value = '5.0';
+            document.getElementById('commissionStartDate').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('commissionRemark').value = '';
+        }
+        
+        // 添加新分成规则
+        function addNewCommission() {
+            const leaderId = document.getElementById('commissionLeader').value;
+            const platformId = document.getElementById('commissionPlatform').value;
+            const rate = parseFloat(document.getElementById('commissionRate').value);
+            const startDate = document.getElementById('commissionStartDate').value;
+            const remark = document.getElementById('commissionRemark').value;
+            
+            if (!leaderId || !platformId || !rate) {
+                alert('请填写必填项');
+                return;
+            }
+            
+            if (rate < 0 || rate > 100) {
+                alert('分成比例必须在0-100之间');
+                return;
+            }
+            
+            // 获取团长信息
+            const leader = userDatabase[leaderId];
+            const platform = platformDatabase.find(p => p.id === platformId);
+            
+            // 创建新分成规则
+            const newCommission = {
+                leaderId: leaderId,
+                leaderName: leader.nickname,
+                team: leader.team,
+                platformId: platformId,
+                platformName: platform.name,
+                rate: rate,
+                startDate: startDate,
+                remark: remark
+            };
+            
+            // 添加到分成规则数据库
+            commissionRules.push(newCommission);
+            
+            // 更新界面
+            renderCommissionList();
+            
+            alert('分成规则添加成功！');
+            closeAddCommissionModal();
+        }
+        
+        // 显示团长收益分成详情模态框
+        function showLeaderCommissionModal() {
+            const modal = document.getElementById('leaderCommissionModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+        
+        // 关闭团长收益分成详情模态框
+        function closeLeaderCommissionModal() {
+            const modal = document.getElementById('leaderCommissionModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+        
+        // 导出团长收益分成数据
+        function exportLeaderCommission() {
+            // 模拟导出数据
+            const data = [
+                ['平台', '下属总收益', '分成比例', '团长分成', '订单数'],
+                ['京东', '¥45,680', '5.0%', '¥2,284', '123'],
+                ['淘宝', '¥28,920', '4.5%', '¥1,301', '234'],
+                ['淘宝逛逛', '¥14,940', '6.0%', '¥896', '89'],
+                ['合计', '¥89,540', '5.0%', '¥4,477', '446']
+            ];
+            
+            // 创建工作簿
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            
+            // 添加工作表
+            XLSX.utils.book_append_sheet(wb, ws, "团长分成详情");
+            
+            // 导出文件
+            XLSX.writeFile(wb, `${currentUser.nickname}_分成详情_${new Date().toLocaleDateString()}.xlsx`);
+        }
+        
+        // 导出团队数据
+        function exportTeamData() {
+            // 模拟导出团队数据
+            const teamData = [
+                ['团队名称', '团长', '成员数', '总收益', '平均收益', '环比增长'],
+                ['华东团队', '张经理', '15', '¥89,540', '¥5,969', '+12.5%'],
+                ['华南团队', '王经理', '12', '¥67,230', '¥5,603', '+8.3%'],
+                ['华北团队', '李经理', '15', '¥72,890', '¥4,859', '-2.1%'],
+                ['华西团队', '赵经理', '8', '¥56,430', '¥7,054', '+5.7%'],
+                ['东北团队', '孙经理', '6', '¥45,670', '¥7,612', '+3.2%'],
+                ['华中团队', '周经理', '5', '¥38,920', '¥7,784', '+10.1%']
+            ];
+            
+            // 创建工作簿
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(teamData);
+            
+            // 添加工作表
+            XLSX.utils.book_append_sheet(wb, ws, "团队收益统计");
+            
+            // 导出文件
+            XLSX.writeFile(wb, `团队收益统计_${new Date().toLocaleDateString()}.xlsx`);
+        }
+        
+        // 初始化图表
+        function initCharts() {
+            // 平台收益分布饼图
+            const platformCtx = document.getElementById('platformChart');
+            if (platformCtx && !platformCtx.chart) {
+                platformCtx.chart = new Chart(platformCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: platformDatabase.map(p => p.name),
+                        datasets: [{
+                            data: platformDatabase.map(p => p.accountCount * 10000), // 模拟数据
+                            backgroundColor: platformDatabase.map(p => p.color),
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // 月度收益趋势线图
+            const monthlyCtx = document.getElementById('monthlyChart');
+            if (monthlyCtx && !monthlyCtx.chart) {
+                monthlyCtx.chart = new Chart(monthlyCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月'],
+                        datasets: [{
+                            label: '月度收益',
+                            data: [856000, 789000, 923000, 890000, 956000, 1023000, 987000, 1056000, 1123000, 1216780],
+                            borderColor: '#165DFF',
+                            backgroundColor: 'rgba(22, 93, 255, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // 团队收益对比图
+            const teamComparisonCtx = document.getElementById('teamComparisonChart');
+            if (teamComparisonCtx && !teamComparisonCtx.chart) {
+                teamComparisonCtx.chart = new Chart(teamComparisonCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.values(teams).map(t => t.name),
+                        datasets: [{
+                            label: '团队收益',
+                            data: Object.values(teams).map((t, i) => [89540, 67230, 72890, 56430, 45670, 38920][i]),
+                            backgroundColor: [
+                                '#165DFF',
+                                '#722ED1',
+                                '#36CFC9',
+                                '#FAAD14',
+                                '#FF4D4F',
+                                '#52C41A'
+                            ],
+                            borderRadius: 8,
+                            borderSkipped: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        // 初始化团队图表
+        function initTeamChart() {
+            const teamCtx = document.getElementById('teamChart');
+            if (teamCtx && !teamCtx.chart) {
+                // 根据用户角色过滤数据
+                let teamData = [89540, 67230, 72890];
+                let teamLabels = ['华东团队', '华南团队', '华北团队'];
+                
+                if (currentUser.role === 'leader') {
+                    // 团长只能看到自己团队的数据
+                    const teamConfig = {
+                        'east': { name: '华东团队', data: [89540] },
+                        'south': { name: '华南团队', data: [67230] },
+                        'north': { name: '华北团队', data: [72890] },
+                        'west': { name: '华西团队', data: [56430] },
+                        'northeast': { name: '东北团队', data: [45670] },
+                        'central': { name: '华中团队', data: [38920] }
+                    };
+                    
+                    const myTeam = teamConfig[currentUser.team];
+                    teamData = myTeam.data;
+                    teamLabels = [myTeam.name];
+                }
+                
+                teamCtx.chart = new Chart(teamCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: teamLabels,
+                        datasets: [{
+                            label: '团队收益',
+                            data: teamData,
+                            backgroundColor: [
+                                '#165DFF',
+                                '#722ED1',
+                                '#36CFC9'
+                            ],
+                            borderRadius: 8,
+                            borderSkipped: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        // 团队筛选功能
+        document.getElementById('teamFilterSelect').addEventListener('change', function() {
+            const selectedTeam = this.value;
+            console.log('筛选团队:', selectedTeam);
+            // 这里可以添加团队筛选的逻辑
+        });
+        
+        // 模拟数据同步状态
+        setInterval(function() {
+            if (currentUser) {
+                const statusIndicators = document.querySelectorAll('.status-indicator');
+                statusIndicators.forEach(indicator => {
+                    if (indicator.classList.contains('bg-success')) {
+                        indicator.classList.remove('bg-success');
+                        indicator.classList.add('bg-warning', 'animate-pulse');
+                    } else if (indicator.classList.contains('bg-warning')) {
+                        indicator.classList.remove('bg-warning', 'animate-pulse');
+                        indicator.classList.add('bg-success');
+                    }
+                });
+            }
+        }, 3000);
+        
+        // 点击模态框外部关闭
+        document.addEventListener('click', function(event) {
+            const modals = ['notificationModal', 'verificationModal', 'addUserModal', 'addPlatformModal', 'addCommissionModal', 'leaderCommissionModal'];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (event.target === modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            });
+        });
+        
+        // 添加回车键登录功能
+        document.getElementById('loginPassword').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                login();
+            }
+        });
+        
+        // 添加回车键搜索功能
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchData();
+            }
+        });
+    </script>
+</body>
+</html>
